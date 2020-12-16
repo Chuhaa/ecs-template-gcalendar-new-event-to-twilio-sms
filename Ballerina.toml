@@ -1,0 +1,12 @@
+[package]
+org = "chuhaashanan"
+name = "calendar_twilio"
+version = "0.1.0"
+
+[build-options]
+observabilityIncluded = true
+
+[[dependency]]
+org = "ballerinax"
+name = "twilio"
+version = "0.9.4"
