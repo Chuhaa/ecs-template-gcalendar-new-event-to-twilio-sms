@@ -9,4 +9,4 @@ observabilityIncluded = true
 [[dependency]]
 org = "ballerinax"
 name = "twilio"
-version = "0.9.4"
+version = "0.99.3"

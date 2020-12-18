@@ -37,13 +37,13 @@ service websub:SubscriberService /websub on googleListener {
         if (notification.getHeader("X-Goog-Channel-ID") == config:getAsString("CHANNEL_ID") && notification.getHeader(
         "X-Goog-Resource-ID") == config:getAsString("RESOURCE-ID")) {      // resource id has to be taken from watch api response
             if (notification.getHeader("X-Goog-Resource-State") == "sync") {
-                calendar:EventResponse|error resp = calendarClient->getEventsUpdated(config:getAsString("CALENDAR_ID"), 1);
+                calendar:EventResponse|error resp = calendarClient->getEventResponse(config:getAsString("CALENDAR_ID"), 1);
                 if (resp is calendar:EventResponse) {
                     syncToken = <@untainted>resp?.nextSyncToken;
                 }
             }
             if (notification.getHeader("X-Goog-Resource-State") == "exists") {
-                calendar:EventResponse|error resp = calendarClient->getEventsUpdated(config:getAsString("CALENDAR_ID"), 
+                calendar:EventResponse|error resp = calendarClient->getEventResponse(config:getAsString("CALENDAR_ID"), 
                 (), syncToken);
                 if (resp is calendar:EventResponse) {
                     syncToken = <@untainted>resp?.nextSyncToken;
