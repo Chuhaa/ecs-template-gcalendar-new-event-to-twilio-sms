@@ -2,8 +2,6 @@ import ballerinax/googleapis_calendar as calendar;
 import ballerinax/twilio;
 import ballerina/websub;
 import ballerina/config;
-import ballerina/io;
-import ballerina/log;
 
 listener websub:Listener googleListener = new websub:Listener(4567);
 
