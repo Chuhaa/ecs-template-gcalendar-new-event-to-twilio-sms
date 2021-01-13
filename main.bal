@@ -2,6 +2,8 @@ import ballerinax/googleapis_calendar as calendar;
 import ballerinax/twilio;
 import ballerina/websub;
 import ballerina/config;
+import ballerina/io;
+import ballerina/log;
 
 listener websub:Listener googleListener = new websub:Listener(4567);
 
@@ -37,26 +39,26 @@ service websub:SubscriberService /websub on googleListener {
         if (notification.getHeader("X-Goog-Channel-ID") == config:getAsString("CHANNEL_ID") && notification.getHeader(
         "X-Goog-Resource-ID") == config:getAsString("RESOURCE-ID")) {      // resource id has to be taken from watch api response
             if (notification.getHeader("X-Goog-Resource-State") == "sync") {
-                calendar:EventResponse|error resp = calendarClient->getEventResponse(config:getAsString("CALENDAR_ID"), 1);
-                if (resp is calendar:EventResponse) {
+                calendar:EventStreamResponse|error resp = calendarClient->getEventResponse(config:getAsString("CALENDAR_ID"));
+                if (resp is calendar:EventStreamResponse) {
                     syncToken = <@untainted>resp?.nextSyncToken;
-                }
+                } 
             }
             if (notification.getHeader("X-Goog-Resource-State") == "exists") {
-                calendar:EventResponse|error resp = calendarClient->getEventResponse(config:getAsString("CALENDAR_ID"), 
-                (), syncToken);
-                if (resp is calendar:EventResponse) {
+                calendar:EventStreamResponse|error resp = calendarClient->getEventResponse(config:getAsString("CALENDAR_ID"), 
+                1, syncToken);
+                if (resp is calendar:EventStreamResponse) {
                     syncToken = <@untainted>resp?.nextSyncToken;
-                    calendar:Event[] events = resp.items;
-                    if (events.length() > 0) {
-                        calendar:Event env = events[0];
-                        string? created = env?.created;
-                        string? updated = env?.updated;
-                        calendar:Time? 'start = env?.'start;
-                        calendar:Time? end = env?.end;
+                    stream<calendar:Event>? events = resp?.items;
+                    if (events is stream<calendar:Event>) {
+                        var env = events.next();
+                        string? created = env?.value?.created;
+                        string? updated = env?.value?.updated;
+                        calendar:Time? 'start = env?.value?.'start;
+                        calendar:Time? end = env?.value?.end;
                         if (created is string && updated is string && 'start is calendar:Time && end is calendar:Time) {
                             if (created.substring(0, 19) == updated.substring(0, 19)) {
-                                string? summary = env?.summary;
+                                string? summary = env?.value?.summary;
                                 string message = "";
                                 if (summary is string) {
                                     message = "New event is created : " + summary + "  starts on " + 'start.
