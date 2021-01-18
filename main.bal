@@ -2,8 +2,6 @@ import ballerinax/googleapis_calendar as calendar;
 import ballerinax/twilio;
 import ballerina/websub;
 import ballerina/config;
-import ballerina/io;
-import ballerina/log;
 
 listener websub:Listener googleListener = new websub:Listener(4567);
 
@@ -51,23 +49,25 @@ service websub:SubscriberService /websub on googleListener {
                     syncToken = <@untainted>resp?.nextSyncToken;
                     stream<calendar:Event>? events = resp?.items;
                     if (events is stream<calendar:Event>) {
-                        var env = events.next();
-                        string? created = env?.value?.created;
-                        string? updated = env?.value?.updated;
-                        calendar:Time? 'start = env?.value?.'start;
-                        calendar:Time? end = env?.value?.end;
-                        if (created is string && updated is string && 'start is calendar:Time && end is calendar:Time) {
-                            if (created.substring(0, 19) == updated.substring(0, 19)) {
-                                string? summary = env?.value?.summary;
-                                string message = "";
-                                if (summary is string) {
-                                    message = "New event is created : " + summary + "  starts on " + 'start.
-                                    dateTime + " ends on " + end.dateTime;
-                                } else {
-                                    message = "New event is created : starts  on " + 'start.dateTime + " ends on " + end.
-                                    dateTime;
+                        record {|calendar:Event value;|}? env = events.next();
+                        if (env is record {|calendar:Event value;|}) {
+                            string? created = env?.value?.created;
+                            string? updated = env?.value?.updated;
+                            calendar:Time? 'start = env?.value?.'start;
+                            calendar:Time? end = env?.value?.end;
+                            if (created is string && updated is string && 'start is calendar:Time && end is calendar:Time) {
+                                if (created.substring(0, 19) == updated.substring(0, 19)) {
+                                    string? summary = env?.value?.summary;
+                                    string message = "";
+                                    if (summary is string) {
+                                        message = "New event is created : " + summary + "  starts on " + 'start.
+                                        dateTime + " ends on " + end.dateTime;
+                                    } else {
+                                        message = "New event is created : starts  on " + 'start.dateTime + " ends on " + end.
+                                        dateTime;
+                                    }
+                                    var details = twilioClient->sendSms(fromMobile, toMobile, message);
                                 }
-                                var details = twilioClient->sendSms(fromMobile, toMobile, message);
                             }
                         }
                     }
