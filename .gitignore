@@ -3,3 +3,5 @@ target
 ballerina.conf
 
 **/resources
+
+Config.toml
