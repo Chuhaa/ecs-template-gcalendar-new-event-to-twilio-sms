@@ -1,76 +1,78 @@
+import ballerina/http;
+import ballerina/log;
 import ballerinax/googleapis_calendar as calendar;
+import ballerinax/googleapis_calendar.'listener;
 import ballerinax/twilio;
-import ballerina/websub;
-import ballerina/config;
 
-listener websub:Listener googleListener = new websub:Listener(4567);
+configurable int port = ?;
 
-calendar:CalendarConfiguration calendarConfig = {
-    oauth2Config: {
-        accessToken: config:getAsString("ACCESS_TOKEN"),
-        refreshConfig: {
-            refreshUrl: config:getAsString("REFRESH_URL"),
-            refreshToken: config:getAsString("REFRESH_TOKEN"),
-            clientId: config:getAsString("CLIENT_ID"),
-            clientSecret: config:getAsString("CLIENT_SECRET")
-        }
-    }
-};
+configurable string clientId = ?;
+configurable string clientSecret = ?;
+configurable string refreshToken = ?;
+configurable string refreshUrl = ?;
+configurable string channelId = ?;
+configurable string token = ?;
+configurable string calendarId = ?;
+configurable string address = ?;
+configurable string ttl = ?;
 
-calendar:CalendarClient calendarClient = new (calendarConfig);
+configurable string fromMobile = ?;
+configurable string toMobile = ?;
+configurable string accountSId = ?;
+configurable string authToken = ?;
+
+calendar:CalendarConfiguration calendarConfig = {oauth2Config: {
+        clientId: clientId,
+        clientSecret: clientSecret,
+        refreshToken: refreshToken,
+        refreshUrl: refreshUrl
+    }};
+
+calendar:Client calendarClient = new (calendarConfig);
 
 twilio:TwilioConfiguration twilioConfig = {
-    accountSId: config:getAsString("ACCOUNT_SID"),
-    authToken: config:getAsString("AUTH_TOKEN"),
-    xAuthyKey: config:getAsString("AUTHY_API_KEY")
+    accountSId: accountSId,
+    authToken: authToken
 };
 
 twilio:Client twilioClient = new (twilioConfig);
 
-string? syncToken = ();
-string fromMobile = config:getAsString("SAMPLE_FROM_MOBILE");
-string toMobile = config:getAsString("SAMPLE_TO_MOBILE");
+calendar:WatchConfiguration watchConfig = {
+    id: channelId,
+    token: token,
+    'type: "webhook",
+    address: address,
+    params: {ttl: ttl}
+};
 
-@websub:SubscriberServiceConfig {subscribeOnStartUp: false}
-service websub:SubscriberService /websub on googleListener {
-    remote function onNotification(websub:Notification notification) {
-        if (notification.getHeader("X-Goog-Channel-ID") == config:getAsString("CHANNEL_ID") && notification.getHeader(
-        "X-Goog-Resource-ID") == config:getAsString("RESOURCE-ID")) {      // resource id has to be taken from watch api response
-            if (notification.getHeader("X-Goog-Resource-State") == "sync") {
-                calendar:EventStreamResponse|error resp = calendarClient->getEventResponse(config:getAsString("CALENDAR_ID"));
-                if (resp is calendar:EventStreamResponse) {
-                    syncToken = <@untainted>resp?.nextSyncToken;
-                } 
-            }
-            if (notification.getHeader("X-Goog-Resource-State") == "exists") {
-                calendar:EventStreamResponse|error resp = calendarClient->getEventResponse(config:getAsString("CALENDAR_ID"), 
-                1, syncToken);
-                if (resp is calendar:EventStreamResponse) {
-                    syncToken = <@untainted>resp?.nextSyncToken;
-                    stream<calendar:Event>? events = resp?.items;
-                    if (events is stream<calendar:Event>) {
-                        record {|calendar:Event value;|}? env = events.next();
-                        if (env is record {|calendar:Event value;|}) {
-                            string? created = env?.value?.created;
-                            string? updated = env?.value?.updated;
-                            calendar:Time? 'start = env?.value?.'start;
-                            calendar:Time? end = env?.value?.end;
-                            if (created is string && updated is string && 'start is calendar:Time && end is calendar:Time) {
-                                if (created.substring(0, 19) == updated.substring(0, 19)) {
-                                    string? summary = env?.value?.summary;
-                                    string message = "";
-                                    if (summary is string) {
-                                        message = "New event is created : " + summary + "  starts on " + 'start.
-                                        dateTime + " ends on " + end.dateTime;
-                                    } else {
-                                        message = "New event is created : starts  on " + 'start.dateTime + " ends on " + end.
-                                        dateTime;
-                                    }
-                                    var details = twilioClient->sendSms(fromMobile, toMobile, message);
-                                }
-                            }
-                        }
+string resourceId = "";
+
+function init() {
+    calendar:WatchResponse res = checkpanic calendarClient->watchEvents(calendarId, watchConfig);
+    resourceId = res.resourceId;
+    log:print(resourceId);
+}
+
+listener 'listener:Listener googleListener = new (port, calendarClient, channelId, resourceId, calendarId);
+
+service /calendar on googleListener {
+    resource function post events(http:Caller caller, http:Request request) {
+        'listener:EventInfo payload = checkpanic googleListener.getEventType(caller, request);
+        if (payload?.eventType is string && payload?.event is calendar:Event) {
+            if (payload?.eventType == 'listener:CREATED) {
+                var event = payload?.event;
+                string? summary = event?.summary;
+                string? startTime = (event?.'start?.dateTime.toString() != "") ? (event?.'start?.dateTime) : (event?.
+                    'start?.date);
+                string? endTime = (event?.end?.dateTime.toString() != "") ? (event?.end?.dateTime) : (event?.end?.date);
+                if (startTime is string && endTime is string) {
+                    string message = "Hi, You are invited to an event " + " that starts on " + startTime + 
+                        " and ends on " + endTime;
+                    if (summary is string) {
+                        message = "Hi, You are invited to an event " + summary + " that starts on " + startTime + 
+                            " and ends on " + endTime;
                     }
+                    var details = twilioClient->sendSms(fromMobile, toMobile, message);
                 }
             }
         }
