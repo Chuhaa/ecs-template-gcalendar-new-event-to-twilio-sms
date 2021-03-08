@@ -62,36 +62,36 @@ access token and refresh token).
 
 ### Config.toml 
 
-### listener configurations
-port = "<PORT>"
+### Listener configurations
+port = "PORT"
 
 ### ballerinax/googleapis_calendar related configurations 
 
 clientId = "<CLIENT_ID>"  
 clientSecret = "<CLIENT_SECRET>"  
 refreshToken = "<REFRESH_TOKEN>"  
-refreshUrl = "<REFRESH_URL>"
-address = "<ADDRESS>"
-calendarId = "<CALENDAR_ID>"
-channelId = "<CHANNEL_ID>"
-token = "<TOKEN>"
-ttl = "<TTL>"
+refreshUrl = "<REFRESH_URL>"  
+address = "ADDRESS"  
+calendarId = "<CALENDAR_ID>"  
+channelId = "<CHANNEL_ID>"  
+token = "TOKEN"   
+ttl = "TTL"   
 
 ### ballerinax/twilio related configurations  
 
-accountSId = "<ACCOUNT_SID>"
-authToken = "<AUTH_TOKRN>"
-fromMobile = "<FROM_MOBILE>"
-toMobile = "<TO_MOBILE>"
+accountSId = "<ACCOUNT_SID>"  
+authToken = "<AUTH_TOKEN>"  
+fromMobile = "<FROM_MOBILE>"  
+toMobile = "<TO_MOBILE>"  
 
 
 ## Running the Template
 
 1. First you need to build the integration template and create the executable binary. Run the following command from the 
-root directory of the integration template. 
+root directory of the integration template.   
 `$ bal build`
 
-2. Then you can run the integration binary with the following command. 
+2. Then you can run the integration binary with the following command.  
 `$  bal run target/bin/calendar_twilio-0.1.0.jar`
 
 3. Now you can add new event to the specific Google Calendar and verify by receiving an SMS to the given number.
