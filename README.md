@@ -67,15 +67,13 @@ port = "PORT"
 
 ### ballerinax/googleapis_calendar related configurations 
 
+port = "PORT"
 clientId = "<CLIENT_ID>"  
 clientSecret = "<CLIENT_SECRET>"  
 refreshToken = "<REFRESH_TOKEN>"  
 refreshUrl = "<REFRESH_URL>"  
 address = "ADDRESS"  
 calendarId = "<CALENDAR_ID>"  
-channelId = "<CHANNEL_ID>"  
-token = "TOKEN"   
-ttl = "TTL"   
 
 ### ballerinax/twilio related configurations  
 
